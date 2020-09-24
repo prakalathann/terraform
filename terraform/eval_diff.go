@@ -281,6 +281,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Add the marks back to the planned new value
+	unmarkedPlannedNewVal := plannedNewVal
 	if len(unmarkedPaths) > 0 {
 		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
@@ -303,7 +304,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	if errs := objchange.AssertPlanValid(schema, priorVal, configVal, plannedNewVal); len(errs) > 0 {
+	if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, unmarkedConfigVal, unmarkedPlannedNewVal); len(errs) > 0 {
 		if resp.LegacyTypeSystem {
 			// The shimming of the old type system in the legacy SDK is not precise
 			// enough to pass this consistency check, so we'll give it a pass here,
@@ -406,7 +407,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 	// Unmark for this test for equality. If only sensitivity has changed,
 	// this does not require an Update or Replace
-	unmarkedPlannedNewVal, _ := plannedNewVal.UnmarkDeep()
 	eqV := unmarkedPlannedNewVal.Equals(unmarkedPriorVal)
 	eq := eqV.IsKnown() && eqV.True()
 
