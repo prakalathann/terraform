@@ -280,12 +280,6 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		panic(fmt.Sprintf("PlanResourceChange of %s produced nil value", absAddr.String()))
 	}
 
-	// Add the marks back to the planned new value
-	unmarkedPlannedNewVal := plannedNewVal
-	if len(unmarkedPaths) > 0 {
-		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
-	}
-
 	// We allow the planned new value to disagree with configuration _values_
 	// here, since that allows the provider to do special logic like a
 	// DiffSuppressFunc, but we still require that the provider produces
@@ -304,7 +298,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, diags.Err()
 	}
 
-	if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, unmarkedConfigVal, unmarkedPlannedNewVal); len(errs) > 0 {
+	if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, unmarkedConfigVal, plannedNewVal); len(errs) > 0 {
 		if resp.LegacyTypeSystem {
 			// The shimming of the old type system in the legacy SDK is not precise
 			// enough to pass this consistency check, so we'll give it a pass here,
@@ -343,6 +337,13 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
 		return nil, diags.Err()
+	}
+
+	// Add the marks back to the planned new value -- this must happen after ignore changes
+	// have been processed
+	unmarkedPlannedNewVal := plannedNewVal
+	if len(unmarkedPaths) > 0 {
+		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
 
 	// The provider produces a list of paths to attributes whose changes mean
