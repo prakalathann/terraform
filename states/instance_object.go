@@ -90,11 +90,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// If it contains marks, remove these marks before traversing the
 	// structure with UnknownAsNull, and save the PathValueMarks
 	// so we can save them in state.
-	val := o.Value
-	var pvm []cty.PathValueMarks
-	if val.ContainsMarked() {
-		val, pvm = val.UnmarkDeepWithPaths()
-	}
+	val, pvm := o.Value.UnmarkDeepWithPaths()
 
 	// Our state serialization can't represent unknown values, so we convert
 	// them to nulls here. This is lossy, but nobody should be writing unknown
